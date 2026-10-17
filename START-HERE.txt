@@ -1,0 +1,24 @@
+MARKET SHAKER AI — TELEGRAM MINI APP
+===================================
+
+This version is built for Telegram, NOT Windows.
+
+WHAT YOU NEED:
+  1) A Telegram bot created using @BotFather
+  2) An account at OTCharts for a read-only OTC data key
+  3) A free-tier-capable HTTPS web host (example: Netlify) and a GitHub repository
+
+WHERE TO BEGIN:
+  Open the README.md file for the publishing steps.
+
+IMPORTANT:
+  Telegram does not host mini-app code itself. The Telegram button opens
+  the website you have published. Do not send API keys or bot tokens in chat.
+
+WHAT WORKS NOW:
+  Responsive interface, markets, signal scanner logic, chart, local history,
+  server-side OTCharts connector once configured.
+
+WHAT DOES NOT WORK YET:
+  No Pocket Option order execution. No AI model. No continuous live scanning.
+  No real market data until you provide a read-only OTCharts key to the host.
