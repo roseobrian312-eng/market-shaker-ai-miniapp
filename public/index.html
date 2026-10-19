@@ -54,6 +54,21 @@
  <div class="selector"><label for="labPayout">ASSUMED PAYOUT (%)</label><input id="labPayout" type="number" inputmode="numeric" value="85" min="1" max="100" step="1"/></div>
  <div class="selector"><label for="labExpiry">TRADE EXPIRY</label><select id="labExpiry"><option value="15">15 sec</option><option value="20">20 sec</option><option value="30" selected>30 sec</option><option value="60">60 sec</option></select></div>
  <button id="testBtn" class="primary" type="button">COMPARE BOTH STRATEGIES</button></div>
+ <div class="infocard" id="freeCollectorPanel">
+  <div class="panelhead"><h3>Free OTC History Collector</h3><span class="alpha">MANUAL · NO AUTO POLLING</span></div>
+  <p class="hint">Collect an OTC candle snapshot only when you choose. Every new historical request costs one provider call; saved research costs none. Not a live tick feed.</p>
+  <button id="freeCheck" class="quiet secondary-action" type="button">CHECK MY OTCHARTS ALLOWANCE (0 CANDLE REQUESTS)</button>
+  <p class="hint" id="freeQuota" role="status">Enter your scanner access code on the Scanner tab first.</p>
+  <div class="selector"><label for="freeMarket">MARKET TO ARCHIVE</label><select id="freeMarket"></select></div>
+  <div class="selector"><label for="freeTf">INTERVAL TO ARCHIVE</label><select id="freeTf"><option value="30">30 seconds — short-expiry research</option><option value="60">1 minute — broader history</option></select></div>
+  <button id="freeCapture" class="primary" type="button">COLLECT SELECTED MARKET SNAPSHOT (1 REQUEST)</button>
+  <p class="hint">To limit overlap, the collector spaces manual snapshots of the same market at least 4 hours apart for 30s, or 36 hours for 1-minute. Free provider history can be shorter than 5,000 candles.</p>
+  <p class="hint" id="freeStatus" role="status">No snapshot requested by this collector yet.</p>
+  <h4>Local market coverage</h4><div id="freeCoverage" class="labresults">Checking saved candles…</div>
+  <button id="freeBackup" class="quiet secondary-action" type="button">BACK UP ALL STORED CANDLES (0 REQUESTS)</button>
+  <div class="selector"><label for="freeRestore">RESTORE STORED CANDLES</label><input type="file" id="freeRestore" accept=".json,application/json"/></div>
+  <p class="hint">History is saved in this browser, not shared between your laptop and Telegram phone. Backups are important. The tool does not access Pocket Option or place trades.</p>
+ </div>
  <div class="infocard" id="discoveryPanel">
   <div class="panelhead"><h3>Strategy Discovery Lab v5</h3><span class="alpha">9 CANDIDATES</span></div>
   <p class="hint">Tests momentum, breakout, pullback, reversal, compression and hybrid candidates. Ranks on validation data; displays later holdout separately. Research-only; no API requests or broker orders.</p>
@@ -79,4 +94,5 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module" src="./app.js"></script>
+<script type="module" src="./free-collector.mjs"></script>
 </body></html>
