@@ -18,6 +18,20 @@ export default async function handler(request) {
   const key=process.env.OTCHARTS_API_KEY;
   if(!key) return respond({error:'Data provider not configured. Add OTCHARTS_API_KEY in Netlify environment variables.'},503);
   if(url.searchParams.get('verify')==='1') return respond({ok:true,verified:true,message:'Scanner password verified. No OTCharts API request made.'});
+  // Account usage is queried only when the owner requests it, without fetching candles.
+  if(url.searchParams.get('usage')==='1'){
+    const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),12000);
+    try{
+      const remote=await fetch('https://otcharts.com/v1/usage',{headers:{Authorization:`Bearer ${key}`,Accept:'application/json'},signal:abort.signal});
+      const body=await remote.json().catch(()=>({}));
+      if(!remote.ok)return respond({error:body.error||`Allowance lookup failed (${remote.status})`},502);
+      const r=body.requests||{},s=body.streams||{};
+      return respond({plan:body.plan||'unknown',planName:body.planName||null,
+        requests:{used:r.used??null,quota:r.quota??null,remaining:r.remaining??null,resets:r.resets??null,per:r.per??r.quota_per??body.quota_per??null},
+        streams:{limit:s.limit??null,open:s.open??null}});
+    }catch(e){return respond({error:e.name==='AbortError'?'Allowance lookup timed out':'Allowance lookup unavailable'},502)}
+    finally{clearTimeout(timer)}
+  }
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
   try {
