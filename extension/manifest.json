@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Market Shaker AI — OTC Companion",
+  "version": "3.0.0",
+  "description": "Read-only OTC signals and user-recorded trade stats overlay for Pocket Option. No automatic orders.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://market-shaker-ai-miniapp.netlify.app/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://pocketoption.com/*", "https://*.pocketoption.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "background": {"service_worker": "background.js", "type": "module"},
+  "options_page": "options.html",
+  "action": {"default_title": "Market Shaker AI: use the on-page floating panel"}
+}

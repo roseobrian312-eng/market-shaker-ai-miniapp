@@ -1,24 +1,26 @@
-MARKET SHAKER AI — TELEGRAM MINI APP
-===================================
+MARKET SHAKER AI V3 — START HERE
 
-This version is built for Telegram, NOT Windows.
+FOR YOUR TELEGRAM MINI APP:
+1. Extract this ZIP.
+2. Open your EXISTING GitHub repo: market-shaker-ai-miniapp.
+3. Upload the contents of THIS folder, including public, netlify, extension, and the root files.
+4. Commit to main. Wait for Netlify to publish. Your bot @OptionChappaBot remains the same.
+5. In Netlify, make sure OTCHARTS_API_KEY and SCANNER_ACCESS_CODE are set privately, with Functions scope.
+6. Open https://market-shaker-ai-miniapp.netlify.app/ and verify you see the AI Model Research and Recorded trade results sections.
 
-WHAT YOU NEED:
-  1) A Telegram bot created using @BotFather
-  2) An account at OTCharts for a read-only OTC data key
-  3) A free-tier-capable HTTPS web host (example: Netlify) and a GitHub repository
+FOR THE CHROME FLOATING WIDGET ON WINDOWS:
+1. In Chrome open: chrome://extensions
+2. Switch Developer mode ON.
+3. Click Load unpacked.
+4. Select the 'extension' FOLDER from this extracted project.
+5. Open its Extension options and save your private SCANNER_ACCESS_CODE (the same value as Netlify).
+6. Open Pocket Option in Chrome and refresh that tab; the Market Shaker AI panel will appear.
+7. Use Scan only when needed (normally 1 OTCharts API request per click).
+8. Use Saved to re-run the same data without new API usage.
 
-WHERE TO BEGIN:
-  Open the README.md file for the publishing steps.
-
-IMPORTANT:
-  Telegram does not host mini-app code itself. The Telegram button opens
-  the website you have published. Do not send API keys or bot tokens in chat.
-
-WHAT WORKS NOW:
-  Responsive interface, markets, signal scanner logic, chart, local history,
-  server-side OTCharts connector once configured.
-
-WHAT DOES NOT WORK YET:
-  No Pocket Option order execution. No AI model. No continuous live scanning.
-  No real market data until you provide a read-only OTCharts key to the host.
+RESTRICTIONS:
+- This release does NOT execute trades automatically.
+- This release does NOT contain a validated high-win-rate AI model. The Strategy Lab has a real but RESEARCH-ONLY trained logistic model; live alerts remain rule-based.
+- User-marked wins/losses are NOT independently verified against broker history.
+- Telegram and the Chrome extension share strategy/data API, but not instant session synchronization or outcome counters.
+- NEVER paste a secret API key or passcode into GitHub or chat messages.

@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Market Shaker AI Settings</title>
+<style>body{background:#081121;color:#f2f6ff;font:15px system-ui;padding:35px;max-width:590px;margin:auto}h1{font-size:24px}p{color:#a6b8cc;line-height:1.65}label{display:block;margin:16px 0 8px}input{background:#18253b;border:1px solid #46617d;border-radius:9px;padding:12px;color:white;width:100%;box-sizing:border-box}button{padding:12px 18px;background:#33d2b3;color:#071520;font-weight:750;border:0;border-radius:9px;cursor:pointer}a{color:#61dbc2}small{color:#a9becf}#notice{min-height:25px;margin-top:12px}</style></head>
+<body><h1>MARKET SHAKER AI • Widget Settings</h1>
+<p>Use the same <strong>SCANNER_ACCESS_CODE</strong> that you created in Netlify. The OTCharts API key must stay in Netlify—never enter it here.</p>
+<form id="config"><label for="code">Private scanner access code</label><input id="code" type="password" placeholder="At least 16 characters" autocomplete="off" minlength="16" required><p><small>The access code is saved in Chrome extension storage in this browser profile. Do not use this extension in a shared Chrome profile.</small></p><button type="submit">Save Access Code</button></form>
+<p id="notice" role="status"></p>
+<p>Then open <a href="https://pocketoption.com/" target="_blank" rel="noopener noreferrer">Pocket Option</a> in Chrome and look for the floating Market Shaker panel. No broker login credentials are requested by this extension.</p>
+<script src="options.js"></script></body></html>
