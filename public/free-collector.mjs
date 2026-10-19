@@ -1,5 +1,6 @@
 /** Free-plan attended snapshots: never a timer, no third-party execution. */
 import {getHistory,saveHistoryData} from './store-v5.mjs';
+import {nextRecommended,archiveHealth} from './free-schedule.mjs';
 import {MARKETS} from './scanner.mjs';
 import {planSummary,suggestedMinimumSeconds,isDue,candleAudit,validateSnapshot} from './free-collector-core.mjs';
 const $=id=>document.getElementById(id);
@@ -99,3 +100,40 @@ $('freeCapture').addEventListener('click',saveOne);
 $('freeBackup').addEventListener('click',()=>exportBackup().catch(e=>setStatus('Backup failed: '+e.message)));
 $('freeRestore').addEventListener('change',e=>restoreBackup(e.target.files?.[0]));
 refreshCoverage().catch(e=>setStatus('Local archive unavailable: '+e.message));
+const remind=$('freeRemind'),dueText=$('freeNextDue'),remindStatus=$('freeRemindStatus');
+const remindStorage='msai.freeCollector.remind';
+remind.checked=localStorage.getItem(remindStorage)==='yes';
+remind.addEventListener('change',()=>{
+ localStorage.setItem(remindStorage,remind.checked?'yes':'no');
+ remindStatus.textContent=remind.checked?'In-app reminders enabled while this page is open.':'Reminders off.';
+ lastReminderKey='';void updateSchedule();
+});
+let lastReminderKey='';
+function scheduleSnapshot(){
+ const tf=Number(tfEl.value),sym=market.value,last=Number(localStorage.getItem(localKey())||0);
+ const next=nextRecommended(last,tf,Date.now());
+ return {tf,sym,last,next,due:next<=Date.now()};
+}
+async function updateSchedule(){
+ const now=Date.now(),{tf,sym,last,next,due}=scheduleSnapshot();
+ dueText.textContent=last>0?
+ `${sym} (${tf}s): last requested ${new Date(last).toLocaleString()}. Next suggested snapshot: ${new Date(next).toLocaleString()} ${due?'— ready now.':''}`:
+ `${sym} (${tf}s): no collector request recorded in this browser. Eligible to collect; suggested window ${new Date(next).toLocaleString()}.`;
+ const data=await getHistory(sym,tf).catch(()=>null);
+ if(data?.candles?.length){
+  const quality=archiveHealth(data.candles,tf,now/1000);
+  dueText.textContent+=` Saved: ${quality.count} candles on ${quality.days} UTC day(s), ${quality.gaps} gap(s); last candle ${new Date(quality.last*1000).toLocaleString()}.`;
+ }
+ if(remind.checked&&due&&last>0){
+  const key=`${sym}-${tf}-${last}`;
+  if(lastReminderKey!==key){lastReminderKey=key;
+   remindStatus.textContent=`Collection due for ${sym} (${tf}s). Press Collect when convenient. No request was sent.`;
+  }
+ }
+}
+$('freeAudit').addEventListener('click',async()=>{await refreshCoverage();await updateSchedule();});
+for(const el of [market,tfEl])el.addEventListener('change',()=>{lastReminderKey='';void updateSchedule()});
+$('freeCapture').addEventListener('click',()=>{setTimeout(()=>{void updateSchedule()},1400)});
+void updateSchedule();
+setInterval(()=>{if(!document.hidden)void updateSchedule()},60000);
+
