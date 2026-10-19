@@ -175,6 +175,24 @@ async function discoverV5(){
   const note=document.createElement('p');note.className='hint';note.textContent=result.readyForForwardDemo?'Candidate has passed provisional internal checks; an independent future demo sample is still required.':'No strategy is validated for live trading. More independent days and forward test trades are needed.';root.append(note);
  }catch(err){toast('Research failed: '+err.message)}finally{button.disabled=false;button.textContent='DISCOVER + TEST 9 STRATEGIES (0 API REQUESTS)'}
 }
+async function exportSavedResearchCSV(){
+ try{
+  const bars=await selectResearchBars();
+  if(!bars.length){toast('No saved candles for this market and interval. No API request made.');return;}
+  const clean=bars.filter(c=>[c.time,c.open,c.high,c.low,c.close].every(x=>Number.isFinite(Number(x))))
+   .sort((a,b)=>Number(a.time)-Number(b.time));
+  if(!clean.length)throw Error('No valid saved candles available to export');
+  const lines=['time,open,high,low,close',...clean.map(c=>[c.time,c.open,c.high,c.low,c.close].join(','))];
+  const blob=new Blob([lines.join('\n')+'\n'],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;
+  link.download=`market-shaker-${state.symbol}-${state.tf}s-OTC-candles.csv`;
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  toast(`Exported ${clean.length.toLocaleString()} saved candles. No API request made.`);
+ }catch(err){toast('Export failed: '+(err.message||String(err)))}
+}
+
 async function importCandlesCSV(file){
  if(!file)return;
  try{
@@ -221,7 +239,7 @@ document.querySelectorAll('.tf').forEach(b=>b.addEventListener('click',()=>{stat
 $('strategy').addEventListener('change',e=>{state.strategy=e.target.value;resetSignal()});
 $('expiry').addEventListener('change',e=>{state.expiry=Number(e.target.value);resetSignal()});
 $('savedBtn').addEventListener('click',()=>{const cached=loadDataset();if(!cached){toast('No candles saved for this asset and interval; scan once');return}try{processData(cached.data,true);toast('Reused saved dataset — 0 API requests')}catch(e){toast(e.message)}});
-$('discoverBtn').addEventListener('click',discoverV5);$('importCandles').addEventListener('change',e=>importCandlesCSV(e.target.files?.[0]));
+$('discoverBtn').addEventListener('click',discoverV5);$('importCandles').addEventListener('change',e=>importCandlesCSV(e.target.files?.[0]));$('exportCandles').addEventListener('click',exportSavedResearchCSV);
 $('testBtn').addEventListener('click',runLab);$('trainML').addEventListener('click',trainML);$('radarBtn').addEventListener('click',scanSavedMarketRadar);
 const checkCode=document.createElement('button');checkCode.type='button';checkCode.className='quiet secondary-action';checkCode.textContent='CHECK SCANNER PASSWORD (0 REQUESTS)';
 $('accessCode').insertAdjacentElement('afterend',checkCode);
