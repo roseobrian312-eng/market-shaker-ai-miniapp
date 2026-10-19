@@ -8,11 +8,13 @@ export default async function handler(request) {
   const symbol=url.searchParams.get('symbol')||'EURUSD_otc';
   const tf=url.searchParams.get('tf')||'60';
   if(!ALLOWED.has(symbol)||!validTF.has(tf)) return respond({error:'Unsupported market or timeframe'},400);
-  const access=process.env.SCANNER_ACCESS_CODE;
+  // Verify owner access before contacting OTCharts; verification does not use API credits.
+  const access=(process.env.SCANNER_ACCESS_CODE||'').trim();
   if(!access) return respond({error:'Owner access is not configured. Add SCANNER_ACCESS_CODE to Netlify environment variables.'},503);
-  if(request.headers.get('x-scanner-code')!==access) return respond({error:'Owner access code is missing or incorrect.'},401);
+  if((request.headers.get('x-scanner-code')||'').trim()!==access) return respond({error:'Owner access code is missing or incorrect.'},401);
   const key=process.env.OTCHARTS_API_KEY;
   if(!key) return respond({error:'Data provider not configured. Add OTCHARTS_API_KEY in Netlify environment variables.'},503);
+  if(url.searchParams.get('verify')==='1') return respond({ok:true,verified:true,message:'Scanner password verified. No OTCharts API request made.'});
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
   try {
