@@ -64,6 +64,14 @@
   <button id="freeCapture" class="primary" type="button">COLLECT SELECTED MARKET SNAPSHOT (1 REQUEST)</button>
   <p class="hint">To limit overlap, the collector spaces manual snapshots of the same market at least 4 hours apart for 30s, or 36 hours for 1-minute. Free provider history can be shorter than 5,000 candles.</p>
   <p class="hint" id="freeStatus" role="status">No snapshot requested by this collector yet.</p>
+  <div class="infocard" id="freeScheduleBox">
+   <div class="panelhead"><h3>Collection Schedule &amp; Reminders</h3><span class="alpha">APP OPEN ONLY</span></div>
+   <p class="hint">Suggested daily collection windows: midnight, 8 AM and 4 PM local time. These are reminders, not automated data requests. You must press Collect yourself.</p>
+   <div class="selector"><label for="freeRemind"><input type="checkbox" id="freeRemind"/> Show an in-app reminder when my selected market is due</label></div>
+   <p id="freeNextDue" class="hint" role="status">Checking next due time…</p>
+   <p id="freeRemindStatus" class="hint">Reminders only appear while this browser page is open. No push notifications or background tasks.</p>
+   <button type="button" class="quiet secondary-action" id="freeAudit">REFRESH ARCHIVE &amp; SCHEDULE (0 REQUESTS)</button>
+  </div>
   <h4>Local market coverage</h4><div id="freeCoverage" class="labresults">Checking saved candles…</div>
   <button id="freeBackup" class="quiet secondary-action" type="button">BACK UP ALL STORED CANDLES (0 REQUESTS)</button>
   <div class="selector"><label for="freeRestore">RESTORE STORED CANDLES</label><input type="file" id="freeRestore" accept=".json,application/json"/></div>
