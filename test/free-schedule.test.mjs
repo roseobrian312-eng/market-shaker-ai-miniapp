@@ -17,3 +17,19 @@ test('archive audit identifies real gaps',()=>{
  const result=archiveHealth([{time:60},{time:90},{time:180}],30,240);
  assert.equal(result.gaps,1);assert.equal(result.missing,2);assert.match(result.warning,/missing/);
 });
+
+test('overdue reminder remains due after midnight passes',()=>{
+ const last=Date.UTC(2026,9,19,12,35,40);
+ const expected=Date.UTC(2026,9,20,0);
+ assert.equal(nextRecommended(last,30,Date.UTC(2026,9,19,13)),expected);
+ assert.equal(nextRecommended(last,30,Date.UTC(2026,9,20,0,1)),expected);
+ assert.equal(nextRecommended(last,30,Date.UTC(2026,9,20,8,45)),expected);
+});
+test('new collection advances the reminder to a new scheduled window',()=>{
+ const atMidnight=Date.UTC(2026,9,20,0,15);
+ assert.equal(nextRecommended(atMidnight,30,atMidnight),Date.UTC(2026,9,20,8));
+});
+test('when no request has been recorded, collection is eligible now',()=>{
+ const now=Date.UTC(2026,9,19,13,7);
+ assert.equal(nextRecommended(0,30,now),now);
+});
