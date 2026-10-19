@@ -4,7 +4,7 @@ export const SCHEDULE_SLOTS=[0,8,16];
 export function nextDue(lastMs,tf,nowMs=Date.now()){
  const last=Number(lastMs),minimum=suggestedMinimumSeconds(tf)*1000;
  if(!Number.isFinite(last)||last<=0)return nowMs;
- return Math.max(nowMs,last+minimum);
+ return last+minimum;
 }
 export function nextDailyWindow(nowMs,slots=SCHEDULE_SLOTS){
  const now=new Date(nowMs); const times=[];
@@ -15,7 +15,11 @@ export function nextDailyWindow(nowMs,slots=SCHEDULE_SLOTS){
  return Math.min(...times);
 }
 export function nextRecommended(lastMs,tf,nowMs=Date.now()){
- const due=nextDue(lastMs,tf,nowMs);
+ const last=Number(lastMs);
+ if(!Number.isFinite(last)||last<=0)return nowMs;
+ const due=nextDue(last,tf,nowMs);
+ // Fix deadline against the last actual collection, NOT the current clock.
+ // Otherwise the suggested slot moves forward forever after it becomes overdue.
  return tf===30?nextDailyWindow(due):due;
 }
 export function archiveHealth(candles,tf,nowSec=Date.now()/1000){
