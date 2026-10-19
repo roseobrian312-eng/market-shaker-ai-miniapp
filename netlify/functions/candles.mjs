@@ -7,6 +7,10 @@ export default async function handler(request) {
   const url=new URL(request.url);
   const symbol=url.searchParams.get('symbol')||'EURUSD_otc';
   const tf=url.searchParams.get('tf')||'60';
+  const limit=Math.max(1,Math.min(5000,Number.parseInt(url.searchParams.get('limit')||'500',10)||500));
+  // Full history pagination (before=) is paid Build+ only. Do not poll candle endpoint continuously.
+  const before=url.searchParams.get('before');
+  if(before!==null && !/^[0-9]{9,12}$/.test(before))return respond({error:'Invalid historical cursor'},400);
   if(!ALLOWED.has(symbol)||!validTF.has(tf)) return respond({error:'Unsupported market or timeframe'},400);
   const access=(process.env.SCANNER_ACCESS_CODE||'').trim();
   if(!access) return respond({error:'Owner access is not configured. Add SCANNER_ACCESS_CODE to Netlify environment variables.'},503);
@@ -18,7 +22,7 @@ export default async function handler(request) {
   const timeout=setTimeout(()=>controller.abort(),12000);
   try {
     const api=new URL('https://otcharts.com/v1/candles');
-    api.searchParams.set('venue','otc');api.searchParams.set('symbol',symbol);api.searchParams.set('tf',tf);api.searchParams.set('limit','500');
+    api.searchParams.set('venue','otc');api.searchParams.set('symbol',symbol);api.searchParams.set('tf',tf);api.searchParams.set('limit',String(limit));if(before)api.searchParams.set('before',before);
     const remote=await fetch(api,{headers:{Authorization:`Bearer ${key}`,Accept:'application/json'},signal:controller.signal});
     const body=await remote.json().catch(()=>({}));
     if(!remote.ok) return respond({error:remote.status===429?'Market data quota or rate limit reached':(body.error||body.detail||`Market-data provider error ${remote.status}`)},remote.status===429?429:502);

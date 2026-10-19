@@ -1,26 +1,13 @@
-MARKET SHAKER AI V3 — START HERE
+MARKET SHAKER AI v5
 
-FOR YOUR TELEGRAM MINI APP:
-1. Extract this ZIP.
-2. Open your EXISTING GitHub repo: market-shaker-ai-miniapp.
-3. Upload the contents of THIS folder, including public, netlify, extension, and the root files.
-4. Commit to main. Wait for Netlify to publish. Your bot @OptionChappaBot remains the same.
-5. In Netlify, make sure OTCHARTS_API_KEY and SCANNER_ACCESS_CODE are set privately, with Functions scope.
-6. Open https://market-shaker-ai-miniapp.netlify.app/ and verify you see the AI Model Research and Recorded trade results sections.
+NOT A PROFIT GUARANTEE. NO LIVE TRADE EXECUTION.
 
-FOR THE CHROME FLOATING WIDGET ON WINDOWS:
-1. In Chrome open: chrome://extensions
-2. Switch Developer mode ON.
-3. Click Load unpacked.
-4. Select the 'extension' FOLDER from this extracted project.
-5. Open its Extension options and save your private SCANNER_ACCESS_CODE (the same value as Netlify).
-6. Open Pocket Option in Chrome and refresh that tab; the Market Shaker AI panel will appear.
-7. Use Scan only when needed (normally 1 OTCharts API request per click).
-8. Use Saved to re-run the same data without new API usage.
+1. The existing Telegram Mini App remains on your existing bot and Netlify site.
+2. New Strategy Lab tests 9 candidate strategies on saved candle data, ranks validation and reports newer holdout separately.
+3. Fresh Scan can request up to 5000 bars in one call, but free OTCharts history is time-limited.
+4. Windows live tick collector REQUIRES an OTCharts streaming-enabled paid plan; the free key does not provide ticks.
+5. Keep the collector PowerShell window open to record ticks. It saves daily NDJSON files, and its offline research script creates CSV/JSON.
+6. The tick recorder/local monitor does NOT feed live prices into Telegram yet. That next stage requires an authenticated secure relay.
+7. Keep keys out of GitHub, chat and ZIP files.
 
-RESTRICTIONS:
-- This release does NOT execute trades automatically.
-- This release does NOT contain a validated high-win-rate AI model. The Strategy Lab has a real but RESEARCH-ONLY trained logistic model; live alerts remain rule-based.
-- User-marked wins/losses are NOT independently verified against broker history.
-- Telegram and the Chrome extension share strategy/data API, but not instant session synchronization or outcome counters.
-- NEVER paste a secret API key or passcode into GitHub or chat messages.
+For detailed installation read README.md.

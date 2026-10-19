@@ -1,3 +1,5 @@
+import {discoverStrategies,auditRawCandles} from './discovery-v5.mjs';
+import {getHistory,saveHistoryData,parseCandleCSV} from './store-v5.mjs';
 import {researchScan} from './ai-v4.mjs';
 import {MARKETS} from './scanner.mjs';
 import {analyzeSmart,backtest,EXPIRIES} from './strategies.mjs';
@@ -64,17 +66,25 @@ function researchSummary(data,saved=false){
  parent.append(details);
  const note=document.createElement('p');note.className='hint';note.textContent='AI ACTION: NO TRADE. We are researching directional patterns, not enabling unproven live ML signals or placing broker orders.';parent.append(note);
 }
-function scanSavedMarketRadar(){
- const list=$('radarResults');list.replaceChildren();let count=0;
+async function scanSavedMarketRadar(){
+ const list=$('radarResults');list.replaceChildren();let count=0;const rows=[];
  for(const m of MARKETS){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(`msai.dataset.${m.symbol}.${state.tf}`)||'null')}catch{}
-  if(!saved?.data?.candles?.length)continue;
-  count++;
-  const out=researchScan(saved.data.candles,state.tf,state.expiry,Number($('labPayout').value)||85);
-  const row=document.createElement('div');row.className='labstat';
-  const head=document.createElement('b');head.textContent=m.name;
-  const detail=document.createElement('small');detail.textContent=out.error?out.error:
-   `Historical model bias: ${out.researchBias||'—'} / ${Number(out.researchScore||0).toFixed(1)}% uncalibrated score • ${out.holdout.signals} holdout signals • NO TRADE`;
+  const archived=await getHistory(m.symbol,state.tf).catch(()=>null);
+  const candles=archived?.candles?.length>=(saved?.data?.candles?.length||0)?archived.candles:saved?.data?.candles;
+  if(!candles?.length)continue;count++;
+  const out=discoverStrategies(candles,{tf:state.tf,expiry:Number($('labExpiry').value),payout:Number($('labPayout').value)||85});
+  const quality=out.quality;const champ=out.candidates?.find(x=>x.id===out.championId);
+  rows.push({name:m.name,champ,days:quality?.days||0,error:out.error,
+    score:champ?.validation.conservativeEV??-1e6,ready:out.readyForForwardDemo});
+ }
+ rows.sort((a,b)=>b.score-a.score);
+ for(const item of rows){
+  const row=document.createElement('div');row.className='labstat';const head=document.createElement('b');head.textContent=item.name;
+  const detail=document.createElement('small');
+  detail.textContent=item.error?item.error:item.champ?
+   `Provisional ${item.champ.name} • ${item.champ.validation.wins}W/${item.champ.validation.losses}L validation • ${item.champ.holdout.wins}W/${item.champ.holdout.losses}L later holdout • ${item.days} days • NO TRADE`:
+   `No candidate passed validation strength requirements • ${item.days} days • NO TRADE`;
   row.append(head,detail);list.append(row);
  }
  if(!count){const p=document.createElement('p');p.className='hint';p.textContent='No saved candle sets at this interval. Markets are not fetched automatically; scanning a new market consumes an API request.';list.append(p);}
@@ -89,7 +99,7 @@ function renderChart(candles){const canvas=$('chart'),ctx=canvas.getContext('2d'
  for(let i=0;i<4;i++){const yy=pad.t+i*ch/3;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r+8,yy);ctx.stroke();const val=max-(max-min)*i/3;ctx.fillText(val.toFixed(val>100?2:5),w-pad.r+11,yy+3)}
  const bw=Math.max(3,Math.min(11,step*.56));list.forEach((c,i)=>{const x=pad.l+step*(i+.5),up=c.close>=c.open;ctx.strokeStyle=up?'#27dfbc':'#f37591';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(c.high));ctx.lineTo(x,y(c.low));ctx.stroke();const a=y(c.open),b=y(c.close);ctx.fillRect(x-bw/2,Math.min(a,b),bw,Math.max(1,Math.abs(b-a)))});
 }
-function showTab(tab){document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.dataset.screen!==tab));document.querySelectorAll('.nav').forEach(el=>el.classList.toggle('active',el.dataset.nav===tab));if(tab==='history')renderHistory();if(tab==='lab')renderLabDataset();if(tab==='scanner'&&state.signal?.candles)requestAnimationFrame(()=>renderChart(state.signal.candles));window.scrollTo({top:0,behavior:'instant'})}
+function showTab(tab){document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('hidden',el.dataset.screen!==tab));document.querySelectorAll('.nav').forEach(el=>el.classList.toggle('active',el.dataset.nav===tab));if(tab==='history')renderHistory();if(tab==='lab'){renderLabDataset();displayVault()};if(tab==='scanner'&&state.signal?.candles)requestAnimationFrame(()=>renderChart(state.signal.candles));window.scrollTo({top:0,behavior:'instant'})}
 function renderHistory(){const box=$('historyList');box.replaceChildren();if(!state.history.length){const p=document.createElement('p');p.className='muted';p.textContent='No saved CALL/PUT alerts yet. A result is logged only when the completed-candle scanner detects a setup.';box.append(p);return;}for(const item of state.history){const row=document.createElement('div');row.className='historyrow';const left=document.createElement('div');const market=document.createElement('b');market.textContent=labelMarket(item.symbol);const time=document.createElement('small');time.textContent=`${item.tf} sec • ${item.strategy||'legacy'} • ${displayTime(item.time)}`;left.append(market,time);const side=document.createElement('strong');side.textContent=item.side;side.className=item.side==='PUT'?'put':'';row.append(left,side);box.append(row)}}
 function renderWatchlist(){const box=$('watchlist');box.replaceChildren();for(const item of MARKETS){const btn=document.createElement('button');btn.type='button';btn.className='watchrow';const left=document.createElement('div');const name=document.createElement('b');name.textContent=item.name;const desc=document.createElement('small');desc.textContent='Pocket Option • OTC data';left.append(name,desc);const right=document.createElement('span');right.textContent='›';btn.append(left,right);btn.addEventListener('click',()=>{state.symbol=item.symbol;$('market').value=item.symbol;resetSignal();showTab('scanner');toast(`Selected ${item.name}`)});box.append(btn)}}
 function resetSignal(){state.recordable=null;renderResultStats();state.signal=null;state.last=null;renderSignal(null);renderChart(null);setStatus('Select Scan for new OTC candles, or use Saved Candles (0 API requests).');}
@@ -133,6 +143,49 @@ function renderLabDataset(){
   [...$('labExpiry').options].forEach(o=>o.disabled=Number(o.value)%state.tf!==0||Number(o.value)<state.tf);
   if(Number($('labExpiry').value)%state.tf!==0||Number($('labExpiry').value)<state.tf)$('labExpiry').value=state.expiry;
 }
+async function selectResearchBars(){
+ const archive=await getHistory(state.symbol,state.tf).catch(()=>null);
+ const browser=loadDataset()?.data?.candles||[];
+ return archive?.candles?.length>=browser.length?archive.candles:browser;
+}
+async function displayVault(){
+ try{
+  const archive=await getHistory(state.symbol,state.tf);
+  $('historyVaultInfo').textContent=archive?.candles?.length?
+  `Local research archive: ${archive.candles.length.toLocaleString()} ${state.tf}-second candles for ${labelMarket(state.symbol)}.`:
+  'No IndexedDB archive yet for this market. Existing snapshot candles can still be used.';
+ }catch(err){$('historyVaultInfo').textContent='Browser archive unavailable: '+err.message}
+}
+async function discoverV5(){
+ const button=$('discoverBtn');button.disabled=true;button.textContent='ANALYZING HISTORICAL DATA…';
+ try{
+  const bars=await selectResearchBars(),result=discoverStrategies(bars,{tf:state.tf,expiry:Number($('labExpiry').value),payout:Number($('labPayout').value)});
+  const root=$('discoverResults');root.replaceChildren();
+  if(result.error){const p=document.createElement('p');p.className='hint';p.textContent=result.error;root.append(p);return}
+  const q=result.quality,p=document.createElement('p');p.className='hint';p.textContent=`Data audit: ${q.validClosed} completed candles, ${q.days} calendar days, ${q.duplicates} duplicate timestamps, ${q.missingBars} missing bars across ${q.gapRuns} gaps. Break-even ${result.breakEven.toFixed(1)}% at ${result.payout}% payout. ${result.decision}`;root.append(p);
+  const table=document.createElement('div');table.className='labresults';
+  const pct=number=>number===null?'—':number.toFixed(1)+'%';
+  for(const r of result.candidates){
+   const card=document.createElement('div');card.className='labstat';
+   const h=document.createElement('b');h.textContent=r.name+(r.id===result.championId?' · top validation candidate':'');
+   const info=document.createElement('small');info.textContent=`Validation ${r.validation.wins}W/${r.validation.losses}L · ${pct(r.validation.winRate)} · net ${r.validation.netUnits.toFixed(2)} units | Newer holdout ${r.holdout.wins}W/${r.holdout.losses}L · ${pct(r.holdout.winRate)} · net ${r.holdout.netUnits.toFixed(2)} units`;
+   const detail=document.createElement('small');detail.textContent=`95% lower accuracy estimate (validation): ${pct(r.validation.lower95)}. Research only; not approved for automatic trading.`;
+   card.append(h,info,detail);table.append(card);
+  }root.append(table);
+  const note=document.createElement('p');note.className='hint';note.textContent=result.readyForForwardDemo?'Candidate has passed provisional internal checks; an independent future demo sample is still required.':'No strategy is validated for live trading. More independent days and forward test trades are needed.';root.append(note);
+ }catch(err){toast('Research failed: '+err.message)}finally{button.disabled=false;button.textContent='DISCOVER + TEST 9 STRATEGIES (0 API REQUESTS)'}
+}
+async function importCandlesCSV(file){
+ if(!file)return;
+ try{
+  const raw=await file.text(),bars=parseCandleCSV(raw),audit=auditRawCandles(bars,state.tf).report;
+  if(audit.validClosed<100)throw Error('This file has fewer than 100 valid completed candles for the selected interval');
+  if(audit.gapRuns>0)toast(`Imported with ${audit.gapRuns} time gaps. Discontinuous periods are excluded from trades.`);
+  const total=await saveHistoryData(state.symbol,state.tf,bars);
+  toast(`Imported ${bars.length} bars • ${total} archived in IndexedDB • no API credits used`);
+  displayVault();
+ }catch(err){toast('Import failed: '+err.message)}
+}
 function runLab(){
  const cached=loadDataset(); if(!cached){toast('Scan once to save real candles before testing');return}
  const payout=Number($('labPayout').value),exp=Number($('labExpiry').value);
@@ -155,11 +208,11 @@ function runLab(){
 
 async function scan(){if(state.scanning)return;
  const code=$('accessCode').value.trim();if(!code){toast('Enter your private scanner access code first');return}
- state.scanning=true;const btn=$('scanBtn');btn.disabled=true;btn.textContent='DOWNLOADING MARKET DATA…';setStatus('Requesting one set of OTC candles (one API call)…');
+ state.scanning=true;const btn=$('scanBtn');btn.disabled=true;btn.textContent='DOWNLOADING UP TO 5,000 CANDLES…';setStatus('Requesting one set of OTC candles (one API call)…');
  try{
-  const response=await fetch(`/.netlify/functions/candles?symbol=${encodeURIComponent(state.symbol)}&tf=${state.tf}`,{cache:'no-store',headers:{'x-scanner-code':code}});
+  const response=await fetch(`/.netlify/functions/candles?symbol=${encodeURIComponent(state.symbol)}&tf=${state.tf}&limit=5000`,{cache:'no-store',headers:{'x-scanner-code':code}});
   const data=await response.json();if(!response.ok)throw new Error(data.error||`Data unavailable (${response.status})`);
-  saveDataset(data);processData(data);toast(`${data.candles.length} new candles received; saved history now available in Strategy Lab`);
+  saveDataset(data);saveHistoryData(state.symbol,state.tf,data.candles).catch(()=>{});processData(data);toast(`${data.candles.length} new candles received; saved history now available in Strategy Lab`);
  }catch(err){state.recordable=null;renderResultStats();state.signal={status:'error',reason:err.message||'Market-data provider unavailable'};renderSignal(state.signal);renderChart(null);setStatus(state.signal.reason,'error');toast('Scan failed; no trading alert issued')}finally{state.scanning=false;btn.disabled=false;btn.innerHTML='<span>⌕</span> SCAN MARKET (1 API REQUEST)'}
 }
 MARKETS.forEach(m=>{const option=document.createElement('option');option.value=m.symbol;option.textContent=m.name;$('market').append(option)});
@@ -168,6 +221,7 @@ document.querySelectorAll('.tf').forEach(b=>b.addEventListener('click',()=>{stat
 $('strategy').addEventListener('change',e=>{state.strategy=e.target.value;resetSignal()});
 $('expiry').addEventListener('change',e=>{state.expiry=Number(e.target.value);resetSignal()});
 $('savedBtn').addEventListener('click',()=>{const cached=loadDataset();if(!cached){toast('No candles saved for this asset and interval; scan once');return}try{processData(cached.data,true);toast('Reused saved dataset — 0 API requests')}catch(e){toast(e.message)}});
+$('discoverBtn').addEventListener('click',discoverV5);$('importCandles').addEventListener('change',e=>importCandlesCSV(e.target.files?.[0]));
 $('testBtn').addEventListener('click',runLab);$('trainML').addEventListener('click',trainML);$('radarBtn').addEventListener('click',scanSavedMarketRadar);
 const checkCode=document.createElement('button');checkCode.type='button';checkCode.className='quiet secondary-action';checkCode.textContent='CHECK SCANNER PASSWORD (0 REQUESTS)';
 $('accessCode').insertAdjacentElement('afterend',checkCode);

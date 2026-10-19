@@ -1,80 +1,72 @@
-# Market Shaker AI v4 — AI Research Scanner Upgrade
+# MARKET SHAKER AI v5 — Tick Recorder + Strategy Discovery Lab
 
-**Read first:** This is a testable development upgrade, not proof of profitability. Deploy on a preview branch before production. No Pocket Option orders are placed. Free OTCharts candle snapshots are used; tick-by-tick learning still requires a compatible continuous streaming feed and service.
+An upgrade for the existing `market-shaker-ai-miniapp` GitHub repo, Netlify site, and Telegram `@OptionChappaBot`. Does **not** create a new bot.
 
-## New v4 research features
-- AI Research Scanner built from seven price-action/indicator features, regularized logistic regression, and a fixed 62%-or-higher uncalibrated score threshold.
-- Chronological 60%/20%/20% training/validation/holdout splits, with no outcome data crossing split boundaries.
-- Reports AI research bias, raw score, withheld test win/loss counts and NO TRADE when evidence is insufficient. No score should be interpreted as a verified trade probability.
-- Saved-Market AI Radar compares previously stored 5-market candle datasets at zero new API request cost.
-- Optional Verify Scanner Password button checks Netlify security at 0 OTCharts requests.
-- Existing rule strategies, Strategy Lab, manual wins/losses and Chrome extension retained. The Chrome extension itself still runs the original v3 rule strategy, and it is not synchronized with AI predictions.
+## Read this first
 
-## Setup
-1. Use this ZIP in a *preview branch or new preview site* first, not directly over working v3. Its contents are a complete project root (public/, netlify/, extension/, test/, netlify.toml).
-2. Configure OTCHARTS_API_KEY and SCANNER_ACCESS_CODE in Netlify Functions environment (keep private).
-3. Test scanner password before using OTC credits, scan ONE market to store candles, then read AI Research Scanner results.
-4. For 0-credit research: go to Strategy Lab and click Analyze Saved Markets, or Train + Test AI Model.
-5. To compare other assets or candle durations, you must first save their data with a fresh scan (API requests).
-6. Upgrade production only after verifying both the site UI and API response against the broker chart.
+**There is no proven profitable OTC strategy in this release.** This is a research/data-acquisition tool, not an automatic trading bot. All win/loss figures produced by the lab are **modeled** outcomes—not Pocket Option-confirmed trades. There is no code that sends Pocket Option buy/sell orders. No claimed win rate or calibrated AI signal confidence.
 
-## Critical limitations
-- Training locally on the same set repeatedly does not create new evidence. Save new, unseen data and conduct forward demo evaluation.
-- With ~500 bars, even a correct model normally has too few holdout trades to justify real-money signals; no automated or verified AI trading signals are enabled.
-- Existing OTCharts feed is read-only; no tick stream, trading permissions, or broker win/loss verification included.
-- Data latency, synchronization, missing candles and payout affect results.
-- The v3 Chrome overlay is retained and remains manual only.
+### What changed from v4
 
-## Local tests
-Install Node.js 22+ and run `npm test` in the project root. Run `npm start` for local UI preview; scanner API calls require a deployed Netlify function.
+- The existing Mini App and Chrome overlay are preserved.
+- The **Strategy Discovery Lab** evaluates 9 fixed candidate methods (including 2 hybrids), automatically ranks candidates on a middle validation period and shows their NEWER final-period results separately. All results are research only. Unlike optimizing on the final holdout, this separation reduces, but does not eliminate, data mining bias.
+- **Data QA:** duplicate timestamps, missing candles, discontinuities, calendar-day coverage.
+- **Up to 5,000 candles per manual Fresh Scan** (instead of 500), subject to the provider plan's actual history window. More candles per call does not give the free plan access to paid historical depth.
+- **IndexedDB archive** preserves imported history in the *same local browser* across refreshes. The original 12,000-bar localStorage snapshot limit is no longer the only place to store research data. Do not depend on browser storage as your only backup.
+- **CSV import** for candles exported from the Windows collector; imported candles are research data, not broker trade results.
+- **Attended Windows Node.js tick collector:** stores raw OTCharts stream ticks as timestamped NDJSON files and shows a localhost tick monitor for up to 5 symbols. It only runs while the process/window stays open.
+- **Offline batch research:** derives thirty-second bars and tests five tick-pattern hypotheses at recorded prices with a configurable 2-second modeled entry delay and 15/20/30/60s simulated expirations. Splits history chronologically 60/20/20, ranks by middle validation period, and keeps holdout separate. Writes a JSON report and importable CSV.
 
-# Market Shaker AI v3 — Telegram Mini App + Chrome Overlay
+### Important API and broker boundaries
 
-**This is a full replacement update** for the existing GitHub repository `market-shaker-ai-miniapp`, Netlify site `https://market-shaker-ai-miniapp.netlify.app/`, and Telegram bot `@OptionChappaBot`. You do **not** need a new GitHub repository, Netlify site or Telegram bot.
+The free OTCharts API provides **candle snapshots only** (reported 200 first-month requests). Live `GET /v1/stream` is a streaming-enabled subscription feature (Lite or higher, as currently advertised). The collector will display an authorization/plan error if your account lacks stream access. It cannot work around the plan restriction. Lite streaming is different from Build historical pagination. A month of old **individual ticks** is not supplied by the candle API. Record permitted ticks continuously over time (or secure a separately licensed historical tick dataset) to obtain that history.
 
-## What's included
+**The Telegram Mini App and Chrome overlay in this build still use snapshot-based live rules.** The Windows collector is an *independent attended component* and shows research-only tick-pattern candidates on a LOCAL monitor. It does not yet synchronize ticks or automated AI orders into Telegram or the Chrome overlay. A separate securely authenticated relay would be needed for that. Netlify short-lived Functions aren't a forever-running collector.
 
-1. **Telegram Mini App:** OTC scanner, charts, two rule-based strategies, saved-candle research, Strategy Lab, manually entered win/loss dashboard, and CSV export.
-2. **Machine-learning research prototype:** a real logistic-regression model trained locally from historical OTC candle features, evaluated on a later chronological holdout. This is **only** a research model. No claims of validated accuracy, no live ML signal deployments, no guarantee of profit.
-3. **Chrome extension:** draggable compact overlay injected on `pocketoption.com` in Chrome on Windows. It reads the same OTC data service and runs the same rule-based scanner as Telegram, without broker credentials. It shows signals, user-reported win/loss counts and win rate. Click **Scan** to use one provider request; click **Saved** to reuse candles with zero new provider requests.
-4. **Safer recording:** Results recorded by the user are marked **user-reported**. They are never described as independently broker-verified. Historical backtest and ML numbers are presented separately.
-5. **Zero automatic orders:** no brokers are accessed, no logins read, and no transactions sent. This release is intended for manual OTC signal research and demo testing.
+All data files remain local. OTCharts has its own retention/redistribution terms. Do not redistribute vendor feed data or sell live-data access without permission. Pocket Option's execution authorization is a separate issue. Use demo-only research and independently verify the price/time alignment.
 
-## Important limitations
+## Install the Mini App v5
 
-- The Chrome widget and Telegram Mini App **use the same scoring rules and data API**, but are not yet a synchronized shared live signal session. Each browser has its own saved candles and manually recorded results. They may show different results if they were refreshed at different times. Cross-device synchronization needs a properly authenticated database backend.
-- The extension cannot verify that you placed or won a trade on Pocket Option. Manually reported results must be checked against the broker's statement before being called verified.
-- The Chrome extension is for **desktop Chrome**, not a Telegram Mini App magically floating on Android. On the phone, use the Telegram Mini App or compatible operating-system multitasking.
-- OTCharts is an unofficial **read-only** price provider. You must check whether the returned OTC prices match the platform before using them. Data can lag; a five-second prediction is not a reliable manual entry signal.
-- **No continuous scanning on the free 200-request tier**; each click on Fresh Scan normally costs one API request and can exhaust the quota. Saving candles and training local models costs zero further provider requests.
-- Permission to locally store data and redistribute it commercially depends on your market data license. Confirm OTCharts terms before selling live market-feed access to other users.
-- No proven profitable strategy, no guaranteed win rate, and no automatic order execution. No machine-learning model is used to issue live CALL/PUT signals in this release.
+1. Extract the ZIP. Open `Market_Shaker_AI_v5` (the folder containing `public`, `netlify`, `extension`, `test` etc.).
+2. Save a backup branch of the current `main` repo so v4 is recoverable.
+3. Open your existing GitHub repository `roseobrian312-eng/market-shaker-ai-miniapp`, choose **Add file → Upload files**, and upload the **contents** of this folder (not the ZIP or outer folder). Commit to your preferred review branch first. Do not upload secrets or the `collector/data` folder.
+4. Once reviewed, merge/deploy with Netlify. Keep `OTCHARTS_API_KEY` and `SCANNER_ACCESS_CODE` only in Netlify Production / Functions environment settings. No new secret variable is required for the candle-only Mini App.
+5. Open the existing URL `https://market-shaker-ai-miniapp.netlify.app/`. On Scanner, choose asset and timeframe, enter your private scanner access code. Fresh Scan requests up to 5,000 completed candle bars; **one API request**, if supported. Saved Candles and the Lab use no new provider calls.
+6. Under Strategy Lab, click **DISCOVER + TEST 9 STRATEGIES**. Inspect both validation and newer holdout (and data quality), not just the headline percentage.
 
-## Installation A — Update existing Telegram Mini App on GitHub
+## Import long-term 30-second candles into the Mini App
 
-1. Extract the ZIP. Open folder `Market_Shaker_AI_v3`. It contains `public`, `netlify`, `extension`, `test`, `netlify.toml`, `package.json`, `README.md` and `START-HERE.txt`.
-2. Open **your existing GitHub repo** `market-shaker-ai-miniapp` (not a new one).
-3. Select **Add file → Upload files** and upload **the contents of** `Market_Shaker_AI_v3`, not the containing folder or ZIP. When files with existing names are present, GitHub will offer to update them. Do not delete your repo.
-4. Commit the changes to `main`. Netlify should deploy from the repo automatically. Existing environment variables remain in Netlify.
-5. In Netlify → Project configuration → Environment variables, check `OTCHARTS_API_KEY` and `SCANNER_ACCESS_CODE` exist with **Production / Functions** scopes. If `SCANNER_ACCESS_CODE` is not present, generate a private code of 16+ characters and add it, then redeploy. **Never share the secrets or save them in GitHub.**
-6. After deployment, open `https://market-shaker-ai-miniapp.netlify.app/` in a browser and check that the Strategy Lab contains `Trainable AI Research Model (Beta)` and the scanner includes `Recorded trade results`.
-7. Open `@OptionChappaBot` on Telegram and tap Open App. It will keep using the existing HTTPS URL; no new BotFather setup is required.
+After running the attended collector and offline research on Windows, `collector/reports/EURUSD_otc-30sec-candles.csv` (and equivalent other pairs) will exist. Open the Mini App on **that same laptop**, select the correct market and **30 SEC** interval, then under Strategy Lab → Import Recorded Candle CSV, choose the correct file. The system saves it to the local IndexedDB archive. Imported candles are only as accurate as the recorded source and are never treated as verified broker execution data.
 
-## Installation B — Load floating widget in desktop Chrome
+## Start live tick recording on Windows (requires stream-enabled OTCharts account)
 
-1. In Windows Chrome, visit `chrome://extensions` and switch on **Developer mode** (top right).
-2. Click **Load unpacked** and select the `extension` folder extracted from the ZIP — **not** the ZIP, GitHub folder, or `public` folder.
-3. Chrome should list **Market Shaker AI — OTC Companion**.
-4. On that extension card, click **Details → Extension options** (or the card's Options link).
-5. Enter the same **private SCANNER_ACCESS_CODE** that you configured in Netlify, then Save. This code stays in Chrome's extension storage. **Do not enter the OTCharts API key into the extension.**
-6. Open or refresh `https://pocketoption.com/` in Chrome. On Pocket Option's web page, you'll see the compact **Market Shaker AI** overlay, which you can drag by its title bar, minimize, and reopen.
-7. Select an OTC market, click **SCAN · 1 REQUEST**, and review the status. It will show **NO SIGNAL** when the model rules don't find a setup or the feed is stale. For free research, click **SAVED · 0** to analyze already downloaded candles again without another request.
-8. If you **actually place** a trade manually, you can use **I WON** or **I LOST** afterward to record the outcome. These entries are not confirmed against broker data and don't automatically sync to Telegram.
+1. Install Node.js 22 or newer from nodejs.org. There are no extra npm dependencies.
+2. Open the extracted project folder. Right-click `collector/start-windows.ps1` → Run with PowerShell, or run from PowerShell: `powershell -ExecutionPolicy Bypass -File .\collector\start-windows.ps1`.
+3. When prompted, privately paste your **OTCharts** API key. It will not be written to the repo, ZIP or tick logs. You may use your current key only if the plan permits `/v1/stream`. **Do not paste the key into ChatGPT.**
+4. Open `http://127.0.0.1:4147/` on the **same laptop** for the live tick monitor. Its readout is research-only. Keep the PowerShell window open; Ctrl+C ends recording. It connects to one multi-symbol SSE stream for up to five markets.
+5. Raw tick files append to `collector/data/EURUSD_otc-YYYY-MM-DD.ndjson`, etc. These are valuable data; keep backups yourself. No continuous background recording occurs when the collector is stopped.
+6. After enough data is recorded, run `collector/research-windows.ps1` to analyze locally. This consumes **zero OTCharts requests** and creates a JSON result plus importable 30-second CSV files in `collector/reports/`.
 
-**If no overlay appears:** Refresh the Pocket Option tab after installing, check the extension is enabled, and verify the browser's actual address is under `pocketoption.com`. Do not turn on all-site extension permissions or paste your Pocket Option login details into any extension.
+For a research month, leave the collector running during attended sessions across days; gaps are reported. To have all-day unattended capture you'd need reliable authorized always-on infrastructure—which is NOT included here.
 
-## Development checks
+## Interpretation and validation
 
-Requires Node.js 22+. In the extracted main folder run `npm test`. Run `npm start` to preview the Telegram dashboard at `http://localhost:3000` (the local preview does not call OTCharts; real scans need Netlify). The Netlify function is `netlify/functions/candles.mjs`.
+- Research scores and strategy rankings are **not** calibrated win probabilities.
+- Selection on validation means the final holdout cannot legitimately be used to repeatedly tweak parameters and claim it's still unseen. You need fresh out-of-time tests for revisions.
+- Historical results model entry delays but do not know Pocket Option order fill latency or exact settlement; timing matters at 15–30 seconds.
+- Account for each symbol's current payout and market openness. The lab uses the manually entered payout assumption, which may differ from current Pocket Option terms.
+- Do **not** call a model production-ready based on 500 or 1,000 bars or a handful of winners. Seek many independent days, sufficient signal count, a positive lower confidence bound on expected value, and forward demo replication.
+- No martingale and no automatic stake escalations.
 
-**Security for production:** Access code is basic owner gating, not full authenticated multiuser access. Before selling, add server-side Telegram initData identity validation, per-account quotas and rate limits, and licensed shared data infrastructure. All auto-trading remains disabled and any future direct execution connector must be approved by the broker.
+## Developer tests
+
+From inside `Market_Shaker_AI_v5` run `npm test`. Preview the existing Mini App with `npm start` (local HTTP preview cannot fetch OTCharts via Netlify). Tick monitor is separate and stream-gated. No tests place broker orders.
+
+## Project files
+
+- `public/discovery-v5.mjs`: chronological candidate research with data quality and uncertainty.
+- `public/store-v5.mjs`: long-history IndexedDB storage and CSV import.
+- `collector/record.mjs`: attended live SSE collector, private localhost monitor, raw NDJSON.
+- `collector/tick-monitor.mjs`: rolling tick aggregation and candidate markers (unvalidated).
+- `collector/tick-lab.mjs`: offline tick-pattern hypotheses with latency/expiry simulation and separate validation/holdout.
+- `collector/analyze.mjs`: reads recorded NDJSON, exports CSV, writes research JSON.

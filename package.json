@@ -1,7 +1,10 @@
 {
-  "name":"market-shaker-ai-telegram-miniapp",
-  "version":"4.0.0",
-  "private":true,
-  "type":"module",
-  "scripts":{"test":"node --test test/*.test.mjs","start":"node local-server.mjs"}
+  "name": "market-shaker-ai-telegram-miniapp",
+  "version": "5.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "node local-server.mjs"
+  }
 }
