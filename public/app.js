@@ -1,3 +1,4 @@
+import {researchScan} from './ai-v4.mjs';
 import {MARKETS} from './scanner.mjs';
 import {analyzeSmart,backtest,EXPIRIES} from './strategies.mjs';
 import {trainResearchModel} from './ml.mjs';
@@ -50,6 +51,35 @@ function renderSignal(x){
  if(x?.factors?.length){const fields=['Trend relationship','Relative Strength Index','Candle direction'];x.factors.forEach((v,i)=>{const div=document.createElement('div');div.className='insight-line';const left=document.createElement('span'),right=document.createElement('span');left.textContent=fields[i]||'Indicator';right.textContent=v;div.append(left,right);$('factors').append(div)})}
  else {const p=document.createElement('p');p.className='muted';p.textContent=x?.reason||'Signal checks appear after a successful scan.';$('factors').append(p)}
 }
+function researchSummary(data,saved=false){
+ const payout=Number($('labPayout').value)||85;
+ const report=researchScan(data.candles,state.tf,state.expiry,payout);
+ const parent=$('aiV4Results');parent.replaceChildren();
+ const title=document.createElement('b');title.textContent=report.error?'AI needs more usable data':
+  `AI research bias: ${report.researchBias||'NONE'} • ${Number(report.researchScore||0).toFixed(1)}% model score`;
+ parent.append(title);
+ const details=document.createElement('p');details.className='hint';
+ if(report.error){details.textContent=report.error;parent.append(details);return;}
+ details.textContent=`${report.reason} ${saved?'Saved data — not live.':'Fresh snapshot received.'} Holdout: ${report.holdout.signals} test signals (${report.holdout.wins}W / ${report.holdout.losses}L), ${report.holdout.winRate===null?'no win rate':report.holdout.winRate.toFixed(1)+'% modeled win rate'}. Validation: ${report.validation.signals} signals. Cutoff: ${report.threshold.toFixed(1)}%. Score is UNCALIBRATED, not win probability.`;
+ parent.append(details);
+ const note=document.createElement('p');note.className='hint';note.textContent='AI ACTION: NO TRADE. We are researching directional patterns, not enabling unproven live ML signals or placing broker orders.';parent.append(note);
+}
+function scanSavedMarketRadar(){
+ const list=$('radarResults');list.replaceChildren();let count=0;
+ for(const m of MARKETS){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(`msai.dataset.${m.symbol}.${state.tf}`)||'null')}catch{}
+  if(!saved?.data?.candles?.length)continue;
+  count++;
+  const out=researchScan(saved.data.candles,state.tf,state.expiry,Number($('labPayout').value)||85);
+  const row=document.createElement('div');row.className='labstat';
+  const head=document.createElement('b');head.textContent=m.name;
+  const detail=document.createElement('small');detail.textContent=out.error?out.error:
+   `Historical model bias: ${out.researchBias||'—'} / ${Number(out.researchScore||0).toFixed(1)}% uncalibrated score • ${out.holdout.signals} holdout signals • NO TRADE`;
+  row.append(head,detail);list.append(row);
+ }
+ if(!count){const p=document.createElement('p');p.className='hint';p.textContent='No saved candle sets at this interval. Markets are not fetched automatically; scanning a new market consumes an API request.';list.append(p);}
+}
+
 function renderChart(candles){const canvas=$('chart'),ctx=canvas.getContext('2d');const density=window.devicePixelRatio||1;const bounds=canvas.getBoundingClientRect();const w=Math.max(280,bounds.width||400),h=Math.max(150,bounds.height||170);canvas.width=Math.round(w*density);canvas.height=Math.round(h*density);ctx.setTransform(density,0,0,density,0,0);ctx.clearRect(0,0,w,h);
  if(!candles?.length){canvas.dataset.filled='false';return}canvas.dataset.filled='true';
  const list=candles.slice(-40);const highs=list.map(c=>c.high),lows=list.map(c=>c.low);let min=Math.min(...lows),max=Math.max(...highs);let space=(max-min)*.13||Math.abs(max)*.001||.01;min-=space;max+=space;
@@ -77,6 +107,7 @@ function processData(data,saved=false){
   if(data.gaps?.runs>0){result.status='gap';result.side=null;result.reason='Provider reported missing candles; no real-time setup accepted'}
   if(state.expiry<30){result.side=null;result.status='lab-only';result.reason='Under 30-second expiries are research only until entry latency is measured'}
   state.last=data;state.signal=result;renderSignal(result);renderChart(result.candles||[]);
+  researchSummary(data,saved);
   if(['stale','error','gap','closed','waiting','lab-only'].includes(result.status))setStatus(`${saved?'Saved dataset':'Live feed'} • ${result.reason}`,result.status==='stale'?'waiting':'error');
   else setStatus(`${saved?'Cached candle set (not live)':'OTC data received'} • ${labelMarket(state.symbol)} • ${data.candles.length} bars`,'connected');
   state.recordable=null;
@@ -137,7 +168,19 @@ document.querySelectorAll('.tf').forEach(b=>b.addEventListener('click',()=>{stat
 $('strategy').addEventListener('change',e=>{state.strategy=e.target.value;resetSignal()});
 $('expiry').addEventListener('change',e=>{state.expiry=Number(e.target.value);resetSignal()});
 $('savedBtn').addEventListener('click',()=>{const cached=loadDataset();if(!cached){toast('No candles saved for this asset and interval; scan once');return}try{processData(cached.data,true);toast('Reused saved dataset — 0 API requests')}catch(e){toast(e.message)}});
-$('testBtn').addEventListener('click',runLab);$('trainML').addEventListener('click',trainML);
+$('testBtn').addEventListener('click',runLab);$('trainML').addEventListener('click',trainML);$('radarBtn').addEventListener('click',scanSavedMarketRadar);
+const checkCode=document.createElement('button');checkCode.type='button';checkCode.className='quiet secondary-action';checkCode.textContent='CHECK SCANNER PASSWORD (0 REQUESTS)';
+$('accessCode').insertAdjacentElement('afterend',checkCode);
+checkCode.addEventListener('click',async()=>{
+ const code=$('accessCode').value.trim();if(!code){toast('Enter your private scanner password first');return}
+ checkCode.disabled=true;try{
+  const res=await fetch('/.netlify/functions/candles?verify=1',{cache:'no-store',headers:{'x-scanner-code':code}});
+  const data=await res.json().catch(()=>({}));if(!res.ok)throw Error(data.error||'Access denied');
+  setStatus('Scanner password accepted. No OTC API credits spent.','connected');toast('Password verified');
+ }catch(err){setStatus(err.message||'Password verification failed','error');toast('Password not verified. Check Netlify Production/Functions.');}
+ finally{checkCode.disabled=false}
+});
+
 $('scanBtn').addEventListener('click',scan);document.querySelectorAll('.nav').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.nav)));
 $('clearHistory').addEventListener('click',()=>{state.history=[];saveHistory();renderHistory();toast('Saved local history cleared')});
 $('recordWin').addEventListener('click',()=>recordOutcome('win'));$('recordLoss').addEventListener('click',()=>recordOutcome('loss'));$('downloadOutcomes').addEventListener('click',exportResults);$('clearOutcomes').addEventListener('click',()=>{if(!confirm('Delete the user-reported results on this device?'))return;state.results=[];state.recordable=null;saveResults();renderResultStats();toast('Local user-reported results cleared')});

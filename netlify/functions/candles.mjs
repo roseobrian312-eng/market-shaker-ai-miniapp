@@ -8,7 +8,6 @@ export default async function handler(request) {
   const symbol=url.searchParams.get('symbol')||'EURUSD_otc';
   const tf=url.searchParams.get('tf')||'60';
   if(!ALLOWED.has(symbol)||!validTF.has(tf)) return respond({error:'Unsupported market or timeframe'},400);
-  // Verify owner access before contacting OTCharts; verification does not use API credits.
   const access=(process.env.SCANNER_ACCESS_CODE||'').trim();
   if(!access) return respond({error:'Owner access is not configured. Add SCANNER_ACCESS_CODE to Netlify environment variables.'},503);
   if((request.headers.get('x-scanner-code')||'').trim()!==access) return respond({error:'Owner access code is missing or incorrect.'},401);

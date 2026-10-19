@@ -40,3 +40,19 @@ test('allowed authorized request retrieves candles once and normalizes provider 
   if(oldKey===undefined)delete process.env.OTCHARTS_API_KEY;else process.env.OTCHARTS_API_KEY=oldKey;
  }
 });
+
+test('password verification succeeds with zero external market-data requests',async()=>{
+ const prevCode=process.env.SCANNER_ACCESS_CODE,prevKey=process.env.OTCHARTS_API_KEY,prevFetch=globalThis.fetch;
+ process.env.SCANNER_ACCESS_CODE='testing-owner';process.env.OTCHARTS_API_KEY='testing-provider';
+ let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Provider should not be contacted')};
+ try{
+  const correct=await handler(new Request('https://test.invalid/.netlify/functions/candles?verify=1',{headers:{'x-scanner-code':'testing-owner'}}));
+  const body=await correct.json();assert.equal(correct.status,200);assert.equal(body.verified,true);assert.equal(calls,0);
+  const wrong=await handler(new Request('https://test.invalid/.netlify/functions/candles?verify=1',{headers:{'x-scanner-code':'not-correct'}}));
+  assert.equal(wrong.status,401);assert.equal(calls,0);
+ }finally{
+  globalThis.fetch=prevFetch;
+  if(prevCode===undefined)delete process.env.SCANNER_ACCESS_CODE;else process.env.SCANNER_ACCESS_CODE=prevCode;
+  if(prevKey===undefined)delete process.env.OTCHARTS_API_KEY;else process.env.OTCHARTS_API_KEY=prevKey;
+ }
+});

@@ -1,3 +1,33 @@
+# Market Shaker AI v4 — AI Research Scanner Upgrade
+
+**Read first:** This is a testable development upgrade, not proof of profitability. Deploy on a preview branch before production. No Pocket Option orders are placed. Free OTCharts candle snapshots are used; tick-by-tick learning still requires a compatible continuous streaming feed and service.
+
+## New v4 research features
+- AI Research Scanner built from seven price-action/indicator features, regularized logistic regression, and a fixed 62%-or-higher uncalibrated score threshold.
+- Chronological 60%/20%/20% training/validation/holdout splits, with no outcome data crossing split boundaries.
+- Reports AI research bias, raw score, withheld test win/loss counts and NO TRADE when evidence is insufficient. No score should be interpreted as a verified trade probability.
+- Saved-Market AI Radar compares previously stored 5-market candle datasets at zero new API request cost.
+- Optional Verify Scanner Password button checks Netlify security at 0 OTCharts requests.
+- Existing rule strategies, Strategy Lab, manual wins/losses and Chrome extension retained. The Chrome extension itself still runs the original v3 rule strategy, and it is not synchronized with AI predictions.
+
+## Setup
+1. Use this ZIP in a *preview branch or new preview site* first, not directly over working v3. Its contents are a complete project root (public/, netlify/, extension/, test/, netlify.toml).
+2. Configure OTCHARTS_API_KEY and SCANNER_ACCESS_CODE in Netlify Functions environment (keep private).
+3. Test scanner password before using OTC credits, scan ONE market to store candles, then read AI Research Scanner results.
+4. For 0-credit research: go to Strategy Lab and click Analyze Saved Markets, or Train + Test AI Model.
+5. To compare other assets or candle durations, you must first save their data with a fresh scan (API requests).
+6. Upgrade production only after verifying both the site UI and API response against the broker chart.
+
+## Critical limitations
+- Training locally on the same set repeatedly does not create new evidence. Save new, unseen data and conduct forward demo evaluation.
+- With ~500 bars, even a correct model normally has too few holdout trades to justify real-money signals; no automated or verified AI trading signals are enabled.
+- Existing OTCharts feed is read-only; no tick stream, trading permissions, or broker win/loss verification included.
+- Data latency, synchronization, missing candles and payout affect results.
+- The v3 Chrome overlay is retained and remains manual only.
+
+## Local tests
+Install Node.js 22+ and run `npm test` in the project root. Run `npm start` for local UI preview; scanner API calls require a deployed Netlify function.
+
 # Market Shaker AI v3 — Telegram Mini App + Chrome Overlay
 
 **This is a full replacement update** for the existing GitHub repository `market-shaker-ai-miniapp`, Netlify site `https://market-shaker-ai-miniapp.netlify.app/`, and Telegram bot `@OptionChappaBot`. You do **not** need a new GitHub repository, Netlify site or Telegram bot.
